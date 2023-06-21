@@ -1,0 +1,12 @@
+version: '3'
+services:
+  postgres:
+    image: postgres
+    ports:
+      - '65436:5432'
+    environment:
+      POSTGRES_DB: template
+      POSTGRES_USER: template
+      POSTGRES_PASSWORD: template
+      POSTGRES_INITDB_ARGS: "-E=UTF8 --lc-collate=C --lc-ctype=C"
+
