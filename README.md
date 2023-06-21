@@ -1,10 +1,17 @@
-Before starting the application locally, you need to start the database
+# Start application
+
+## Local start
+### Requirements:
+Docker has to be installed
+### Start
+1. Before starting the application locally, you need to start the database
 `cd dependency-stub && docker-compose up -d`
 
-build fat jar with command `./mvnw package` on mac, linux or `.\mvnw.cmd package` on windows
+2. Build fat jar with command `./mvnw package` on mac, linux or `.\mvnw.cmd package` on windows
 
-start fat jar with command `java -jar ./target/dictionary-api.jar`
+3. start fat jar with command `java -jar ./target/template.jar`
 
-development
-in order to generate open-api class you need to build fat jar first - this way classes will be generated
-and project will compile correctly
+# Development
+## How to get generated classes?
+1. Build fat jar with command `./mvnw package` on mac, linux or `.\mvnw.cmd package` on windows
+2. After first step classes will be generated inside target folder
