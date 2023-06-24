@@ -13,5 +13,5 @@ Docker has to be installed
 
 # Development
 ## How to get generated classes?
-1. Build fat jar with command `./mvnw package` on mac, linux or `.\mvnw.cmd package` on windows
+1. Build fat jar with command `./mvnw package -Dmaven.test.skip` on mac, linux or `.\mvnw.cmd package -Dmaven.test.skip` on windows
 2. After first step classes will be generated inside target folder
