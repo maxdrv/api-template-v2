@@ -39,6 +39,7 @@ public class MetricService {
             Tag space = Tag.of("space", identity.subKey());
             metrics.put(identity, meterRegistry.gauge(identity.name(), List.of(table, space), new AtomicLong(0)));
         }
+
     }
 
     @Scheduled(fixedRate = 3000)
