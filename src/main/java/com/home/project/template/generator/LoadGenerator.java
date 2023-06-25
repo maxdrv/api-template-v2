@@ -13,6 +13,7 @@ import ru.yoomoney.tech.dbqueue.api.EnqueueParams;
 import ru.yoomoney.tech.dbqueue.api.impl.ShardingQueueProducer;
 import ru.yoomoney.tech.dbqueue.spring.dao.SpringDatabaseAccessLayer;
 
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -33,7 +34,7 @@ public class LoadGenerator {
     private final ShardingQueueProducer<String, SpringDatabaseAccessLayer> stringQueueProducer;
     private final ConfigurationRepository configurationRepository;
     private final List<String> types = List.of("PALLET", "PLACE");
-    private final Random random = new Random();
+    private final Random random = new SecureRandom();
 
     private final long appStartTime = Instant.now().toEpochMilli();
     private final AtomicLong seq = new AtomicLong(10_000_000);
