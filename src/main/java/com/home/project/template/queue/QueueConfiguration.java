@@ -1,7 +1,7 @@
 package com.home.project.template.queue;
 
-import com.home.project.template.generator.SortableRepository;
-import com.home.project.template.generator.StageRepository;
+import com.home.project.template.sortable.SortableRepository;
+import com.home.project.template.sortable.StageRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;

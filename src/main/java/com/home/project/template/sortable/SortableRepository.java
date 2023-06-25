@@ -1,4 +1,4 @@
-package com.home.project.template.generator;
+package com.home.project.template.sortable;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -18,13 +18,13 @@ public class SortableRepository {
         return jdbcTemplate.queryForObject("select * from sortable where id = ?", this::toSortable, id);
     }
 
-    public List<Sortable> insert(String type, Stage stage, String barcode) {
+    public List<Sortable> insert(Long sortingCenterId, String type, Stage stage, String barcode) {
         return jdbcTemplate.query(
                 """
-                    insert into sortable(created_at, updated_at, status, type, stage_id, barcode)
-                    values (now(), now(), ?, ?, ?, ?)
+                    insert into sortable(created_at, updated_at, sc_id, status, type, stage_id, barcode)
+                    values (now(), now(), ?, ?, ?, ?, ?)
                     returning *
-                """, this::toSortable, stage.status(), type, stage.id(), barcode);
+                """, this::toSortable, sortingCenterId, stage.status(), type, stage.id(), barcode);
     }
 
     public void update(Long id, Stage stage) {
@@ -34,15 +34,21 @@ public class SortableRepository {
                 """, stage.status(), stage.id(), id);
     }
 
+    public int delete(Long archiveId) {
+        return jdbcTemplate.update("delete from sortable where archive_id = ?", archiveId);
+    }
+
     private Sortable toSortable(ResultSet rs, int rowNum) throws SQLException {
         return new Sortable(
                 rs.getLong("id"),
                 rs.getTimestamp("created_at").toInstant(),
                 rs.getTimestamp("updated_at").toInstant(),
+                rs.getLong("sc_id"),
                 rs.getString("status"),
                 rs.getString("type"),
                 rs.getLong("stage_id"),
-                rs.getString("barcode")
+                rs.getString("barcode"),
+                rs.getLong("archive_id")
         );
     }
 

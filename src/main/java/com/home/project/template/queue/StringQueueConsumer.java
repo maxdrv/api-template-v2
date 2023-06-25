@@ -1,12 +1,11 @@
 package com.home.project.template.queue;
 
-import com.home.project.template.generator.Sortable;
-import com.home.project.template.generator.SortableRepository;
-import com.home.project.template.generator.Stage;
-import com.home.project.template.generator.StageRepository;
+import com.home.project.template.sortable.Sortable;
+import com.home.project.template.sortable.SortableRepository;
+import com.home.project.template.sortable.Stage;
+import com.home.project.template.sortable.StageRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 import ru.yoomoney.tech.dbqueue.api.*;
 import ru.yoomoney.tech.dbqueue.api.impl.NoopPayloadTransformer;

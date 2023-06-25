@@ -1,4 +1,4 @@
-package com.home.project.template.generator;
+package com.home.project.template.sortable;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;

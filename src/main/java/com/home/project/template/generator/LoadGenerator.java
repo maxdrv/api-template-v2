@@ -1,20 +1,23 @@
 package com.home.project.template.generator;
 
+import com.home.project.template.configuration.Configuration;
 import com.home.project.template.configuration.ConfigurationRepository;
+import com.home.project.template.sortable.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.yoomoney.tech.dbqueue.api.EnqueueParams;
 import ru.yoomoney.tech.dbqueue.api.impl.ShardingQueueProducer;
 import ru.yoomoney.tech.dbqueue.spring.dao.SpringDatabaseAccessLayer;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -23,7 +26,9 @@ import java.util.concurrent.atomic.AtomicLong;
 @RequiredArgsConstructor
 public class LoadGenerator {
 
+    private final JdbcTemplate jdbcTemplate;
     private final StageRepository stageRepository;
+    private final SortingCenterRepository sortingCenterRepository;
     private final SortableRepository sortableRepository;
     private final ShardingQueueProducer<String, SpringDatabaseAccessLayer> stringQueueProducer;
     private final ConfigurationRepository configurationRepository;
@@ -45,10 +50,17 @@ public class LoadGenerator {
                 .map(conf -> Objects.equals("true", conf.value()))
                 .orElse(false);
 
-        if (run) {
-            insert(10);
-            log.info("total inserted: " + insertCnt.get());
+        if (!run) {
+            return;
         }
+
+        int cnt = configurationRepository.findByKey("insert_cnt")
+                .map(Configuration::value)
+                .map(Integer::parseInt)
+                .orElse(10);
+
+        insert(cnt);
+        log.info("total inserted: " + insertCnt.get());
     }
 
     private void insert(int amount) {
@@ -61,7 +73,10 @@ public class LoadGenerator {
         List<Stage> stages = stageRepository.findAllCached();
         Stage stage = rand(stages);
 
-        List<Sortable> created = sortableRepository.insert(rand(types), stage, nextBarcode());
+        List<SortingCenter> sortingCenters = sortingCenterRepository.findAllCached();
+        Long sortingCenterId = rand(sortingCenters).id();
+
+        List<Sortable> created = sortableRepository.insert(sortingCenterId, rand(types), stage, nextBarcode());
 
         created.forEach(s -> {
             EnqueueParams<String> params = EnqueueParams.create(String.valueOf(s.id())).withExecutionDelay(Duration.ofSeconds(2));
@@ -71,6 +86,78 @@ public class LoadGenerator {
         insertCnt.addAndGet(created.size());
     }
 
+    @Scheduled(fixedDelay = 60_000)
+    @Transactional
+    public void archiveMarker() {
+        boolean run = configurationRepository.findByKey("archive_marker")
+                .map(conf -> Objects.equals("true", conf.value()))
+                .orElse(false);
+
+        if (!run) {
+            return;
+        }
+
+        int cnt = configurationRepository.findByKey("archive_cnt")
+                .map(Configuration::value)
+                .map(Integer::parseInt)
+                .orElse(600);
+
+
+        Long archiveId = jdbcTemplate.queryForObject("""
+                insert into archive(created_at, updated_at, marked, deleted)
+                values (now(), now(), null, null)
+                returning id
+                """, Long.class);
+
+
+        int updateCnt = jdbcTemplate.update("""
+                update sortable set archive_id = ? where id in (
+                    select id from sortable where archive_id is null and status = 'SHIPPED' order by id asc limit ?
+                )
+                """, archiveId, cnt);
+
+        jdbcTemplate.update("update archive set marked = ? where id = ?", updateCnt, archiveId);
+    }
+
+    @Scheduled(fixedDelay = 60_000)
+    @Transactional
+    public void archiveDeleter() {
+        boolean run = configurationRepository.findByKey("archive_deleter")
+                .map(conf -> Objects.equals("true", conf.value()))
+                .orElse(false);
+
+        if (!run) {
+            return;
+        }
+
+//        int cnt = configurationRepository.findByKey("delete_cnt")
+//                .map(Configuration::value)
+//                .map(Integer::parseInt)
+//                .orElse(600);
+
+        Optional<Long> archiveIdO = findArchive();
+        if (archiveIdO.isEmpty()) {
+            log.info("archive not found");
+            return;
+        }
+
+        int deletedCnt = sortableRepository.delete(archiveIdO.get());
+        jdbcTemplate.update("update archive set deleted = ? where id = ?", deletedCnt, archiveIdO.get());
+    }
+
+    public Optional<Long> findArchive() {
+        List<Long> res = jdbcTemplate.query(
+                "select id from archive where marked is not null and deleted is null order by id asc limit 1",
+                (rs, rowNum) -> rs.getLong("id")
+        );
+        if (res.size() == 0) {
+            return Optional.empty();
+        }
+        if (res.size() > 1) {
+            throw new RuntimeException("should never happen size > 1 findArchive");
+        }
+        return Optional.of(res.get(0));
+    }
 
     private <T> T rand(List<T> any) {
         int idx = random.nextInt(any.size());
@@ -79,18 +166,6 @@ public class LoadGenerator {
 
     private String nextBarcode() {
         return appStartTime + "-" + seq.getAndIncrement();
-    }
-
-    private Sortable toSortable(ResultSet rs, int rowNum) throws SQLException {
-        return new Sortable(
-                rs.getLong("id"),
-                rs.getTimestamp("created_at").toInstant(),
-                rs.getTimestamp("updated_at").toInstant(),
-                rs.getString("status"),
-                rs.getString("type"),
-                rs.getLong("stage_id"),
-                rs.getString("barcode")
-        );
     }
 
 }
