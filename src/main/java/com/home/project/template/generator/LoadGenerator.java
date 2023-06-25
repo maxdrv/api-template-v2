@@ -1,5 +1,6 @@
 package com.home.project.template.generator;
 
+import com.home.project.template.configuration.ConfigurationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -14,6 +15,7 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -22,10 +24,10 @@ import java.util.concurrent.atomic.AtomicLong;
 @RequiredArgsConstructor
 public class LoadGenerator {
 
-    private final JdbcTemplate jdbcTemplate;
     private final StageRepository stageRepository;
     private final SortableRepository sortableRepository;
     private final ShardingQueueProducer<String, SpringDatabaseAccessLayer> stringQueueProducer;
+    private final ConfigurationRepository configurationRepository;
     private final List<String> types = List.of("PALLET", "PLACE");
     private final Random random = new Random();
 
@@ -39,17 +41,15 @@ public class LoadGenerator {
      */
     @Scheduled(fixedDelay = 1000)
     public void inserter() {
-        insert(10);
-        log.info("total inserted: " + insertCnt.get());
-    }
+        boolean run = configurationRepository.findByKey("insert")
+                .map(conf -> Objects.equals("true", conf.value()))
+                .orElse(false);
 
-//    @Scheduled(fixedDelay = 60 * 1000)
-//    public void markForArchive() {
-//
-//        jdbcTemplate.query(
-//
-//        )
-//    }
+        if (run) {
+            insert(10);
+            log.info("total inserted: " + insertCnt.get());
+        }
+    }
 
     private void insert(int amount) {
         for (int i = 0; i < amount; i++) {
