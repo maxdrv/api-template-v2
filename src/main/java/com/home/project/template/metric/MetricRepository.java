@@ -21,12 +21,7 @@ public class MetricRepository {
                     ]) as subkey,
                     unnest(array[
                         n_tup_ins, n_tup_upd, n_tup_hot_upd, n_tup_del, n_live_tup, n_dead_tup, reltuples, relpages
-                    ]) as value,
-                    -- далее теги, для того что бы заполнить формат key-value
-                    psut.relname as ownerId,
-                    -1 AS scId,
-                    '' as scName,
-                    '' as comment
+                    ]) as value
                 from pg_stat_user_tables psut
                     join pg_class pc on psut.relid = pc.oid
                 where psut.relname in ('sortable');
