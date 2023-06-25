@@ -20,9 +20,6 @@
         <db.queue.version>15.1.0</db.queue.version>
         <!-- tools -->
         <org.projectlombok.version>1.18.24</org.projectlombok.version>
-        <springfox-swagger2.version>3.0.0</springfox-swagger2.version>
-        <swagger-core-jakarta.version>2.2.7</swagger-core-jakarta.version>
-        <jackson-databind-nullable.version>0.2.3</jackson-databind-nullable.version>
         <stream.ex.version>0.8.1</stream.ex.version>
         <!-- testing -->
         <junit.jupiter.version>5.6.2</junit.jupiter.version>
@@ -90,32 +87,6 @@
             <artifactId>lombok</artifactId>
             <version>${org.projectlombok.version}</version>
             <optional>true</optional>
-        </dependency>
-        <!-- open api main dependency -->
-        <dependency>
-            <groupId>io.springfox</groupId>
-            <artifactId>springfox-swagger2</artifactId>
-            <version>${springfox-swagger2.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>io.swagger.core.v3</groupId>
-                    <artifactId>swagger-annotations</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <!-- open api dependency to fix problems -->
-        <!-- https://stackoverflow.com/questions/76384937/openapi-generator-maven-plugin-generate-classes-with-missing-symbol -->
-        <dependency>
-            <groupId>io.swagger.core.v3</groupId>
-            <artifactId>swagger-core-jakarta</artifactId>
-            <version>${swagger-core-jakarta.version}</version>
-        </dependency>
-        <!-- open api dependency to fix problems -->
-        <!-- removes error during open-api generation: package org.openapitools.jackson.nullable does not exist -->
-        <dependency>
-            <groupId>org.openapitools</groupId>
-            <artifactId>jackson-databind-nullable</artifactId>
-            <version>${jackson-databind-nullable.version}</version>
         </dependency>
         <dependency>
             <groupId>one.util</groupId>
@@ -248,35 +219,6 @@
                         <configuration>
                             <classifier>spring-boot</classifier>
                             <mainClass>com.home.project.template.TemplateApplication</mainClass>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.openapitools</groupId>
-                <artifactId>openapi-generator-maven-plugin</artifactId>
-                <version>${openapi-generator-maven-plugin.version}</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
-                        <configuration>
-                            <configHelp>false</configHelp>  <!-- enable if you need hints how to configure -->
-                            <inputSpec>
-                                ${project.basedir}/src/main/resources/template-api.yaml
-                            </inputSpec>
-                            <generatorName>spring</generatorName>
-                            <apiPackage>com.home.project.template.openapi.api</apiPackage>
-                            <modelPackage>com.home.project.template.openapi.model</modelPackage>
-                            <generateSupportingFiles>true</generateSupportingFiles>
-                            <supportingFilesToGenerate>
-                                ApiUtil.java
-                            </supportingFilesToGenerate>
-                            <configOptions>
-                                <delegatePattern>true</delegatePattern>
-                                <useSpringBoot3>true</useSpringBoot3> <!-- javax => jakarta -->
-                            </configOptions>
                         </configuration>
                     </execution>
                 </executions>

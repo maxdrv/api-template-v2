@@ -11,7 +11,7 @@ Docker has to be installed
 
 3. start fat jar with command `java -jar ./target/template.jar`
 
-# Development
-## How to get generated classes?
-1. Build fat jar with command `./mvnw package` on mac, linux or `.\mvnw.cmd package` on windows
-2. After first step classes will be generated inside target folder
+
+## Server start
+1. Положить application.properties с конфигом сервера в папку, откуда будет выполнен запуск
+2. Запускаем `java -jar ./template.jar`
