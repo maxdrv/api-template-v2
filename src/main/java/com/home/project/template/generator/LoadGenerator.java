@@ -3,7 +3,6 @@ package com.home.project.template.generator;
 import com.home.project.template.configuration.ConfigurationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import ru.yoomoney.tech.dbqueue.api.EnqueueParams;
@@ -31,13 +30,14 @@ public class LoadGenerator {
     private final List<String> types = List.of("PALLET", "PLACE");
     private final Random random = new Random();
 
-    private final long atTheAppStart = Instant.now().toEpochMilli();
+    private final long appStartTime = Instant.now().toEpochMilli();
     private final AtomicLong seq = new AtomicLong(10_000_000);
     private final AtomicLong insertCnt = new AtomicLong(0);
 
 
     /**
      * insert: 10 * 60 * 60 = 36000 в час
+     * затем происходит отложенные dbQueue таски, которые проводят sortable до статуса shipped
      */
     @Scheduled(fixedDelay = 1000)
     public void inserter() {
@@ -78,7 +78,7 @@ public class LoadGenerator {
     }
 
     private String nextBarcode() {
-        return atTheAppStart + "-" + seq.getAndIncrement();
+        return appStartTime + "-" + seq.getAndIncrement();
     }
 
     private Sortable toSortable(ResultSet rs, int rowNum) throws SQLException {
