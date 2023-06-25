@@ -17,6 +17,7 @@
         <java.version>17</java.version>
         <!-- database -->
         <postgres.driver.version>42.5.1</postgres.driver.version>
+        <db.queue.version>15.1.0</db.queue.version>
         <!-- tools -->
         <org.projectlombok.version>1.18.24</org.projectlombok.version>
         <springfox-swagger2.version>3.0.0</springfox-swagger2.version>
@@ -60,10 +61,16 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- ### background task execution ### -->
+        <!-- db-queue -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-quartz</artifactId>
+            <groupId>ru.yoomoney.tech</groupId>
+            <artifactId>db-queue-core</artifactId>
+            <version>${db.queue.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ru.yoomoney.tech</groupId>
+            <artifactId>db-queue-spring</artifactId>
+            <version>${db.queue.version}</version>
         </dependency>
 
         <!-- ### metrics & monitoring ### -->
