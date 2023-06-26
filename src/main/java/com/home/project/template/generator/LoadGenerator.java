@@ -60,24 +60,31 @@ public class LoadGenerator {
                 .map(Integer::parseInt)
                 .orElse(10);
 
-        insert(cnt);
-        log.info("total inserted: " + insertCnt.get());
-    }
-
-    private void insert(int amount) {
-        for (int i = 0; i < amount; i++) {
-            insert();
-        }
-    }
-
-    private void insert() {
         List<Stage> stages = stageRepository.findAllCached();
-        Stage stage = rand(stages);
+        String startAt = configurationRepository.findByKey("starting_stage")
+                .map(Configuration::value)
+                .orElse("A");
+
+        Stage startingStage = stages.stream()
+                .filter(st -> Objects.equals(st.systemName(), startAt))
+                .findFirst()
+                .orElse(stages.get(0));
 
         List<SortingCenter> sortingCenters = sortingCenterRepository.findAllCached();
         Long sortingCenterId = rand(sortingCenters).id();
 
-        List<Sortable> created = sortableRepository.insert(sortingCenterId, rand(types), stage, nextBarcode());
+        insert(cnt, sortingCenterId, startingStage);
+        log.info("total inserted: " + insertCnt.get());
+    }
+
+    private void insert(int amount, Long sortingCenterId, Stage startingStage) {
+        for (int i = 0; i < amount; i++) {
+            insert(sortingCenterId, startingStage);
+        }
+    }
+
+    private void insert(Long sortingCenterId, Stage startingStage) {
+        List<Sortable> created = sortableRepository.insert(sortingCenterId, rand(types), startingStage, nextBarcode());
 
         created.forEach(s -> {
             EnqueueParams<String> params = EnqueueParams.create(String.valueOf(s.id())).withExecutionDelay(Duration.ofSeconds(2));
