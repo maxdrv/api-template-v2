@@ -16,11 +16,9 @@ import ru.yoomoney.tech.dbqueue.spring.dao.SpringDatabaseAccessLayer;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -78,20 +76,19 @@ public class LoadGenerator {
     }
 
     private void insert(int amount, Long sortingCenterId, Stage startingStage) {
+        List<SortableInsert> inserts = new ArrayList<>();
         for (int i = 0; i < amount; i++) {
-            insert(sortingCenterId, startingStage);
+            inserts.add(new SortableInsert(sortingCenterId, rand(types), startingStage, nextBarcode()));
         }
-    }
 
-    private void insert(Long sortingCenterId, Stage startingStage) {
-        List<Sortable> created = sortableRepository.insert(sortingCenterId, rand(types), startingStage, nextBarcode());
+        List<Long> ids = sortableRepository.insertMulti(new SortableInsertMulti(inserts));
 
-        created.forEach(s -> {
-            EnqueueParams<String> params = EnqueueParams.create(String.valueOf(s.id())).withExecutionDelay(Duration.ofSeconds(2));
-            stringQueueProducer.enqueue(params);
-        });
+        String idsString = ids.stream().map(Object::toString).collect(Collectors.joining(","));
 
-        insertCnt.addAndGet(created.size());
+        EnqueueParams<String> params = EnqueueParams.create(idsString).withExecutionDelay(Duration.ofSeconds(2));
+        stringQueueProducer.enqueue(params);
+
+        insertCnt.addAndGet(amount);
     }
 
     @Scheduled(fixedDelay = 60_000)

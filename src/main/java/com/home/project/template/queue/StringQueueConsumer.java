@@ -14,6 +14,7 @@ import ru.yoomoney.tech.dbqueue.settings.QueueConfig;
 import ru.yoomoney.tech.dbqueue.spring.dao.SpringDatabaseAccessLayer;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -45,11 +46,24 @@ public class StringQueueConsumer implements QueueConsumer<String> {
     @Override
     public TaskExecutionResult execute(Task<String> task) {
         String str = task.getPayloadOrThrow();
-        Long sortableId = Long.valueOf(str);
-        Sortable sortable = sortableRepository.findByIdOrThrow(sortableId);
 
-        Long curStageId = sortable.stageId();
+        List<Long> sortableIds = new ArrayList<>();
+        for (String split : str.split(",")) {
+            Long sortableId = Long.valueOf(split);
+            sortableIds.add(sortableId);
+        }
 
+        if (sortableIds.isEmpty()) {
+            return TaskExecutionResult.finish();
+        }
+
+        List<Sortable> sortableList = sortableRepository.findAllByIds(sortableIds);
+        if (sortableList.isEmpty()) {
+            return TaskExecutionResult.finish();
+        }
+
+        Sortable first = sortableList.get(0);
+        Long curStageId = first.stageId();
         List<Stage> allCached = stageRepository.findAllCached();
 
         Iterator<Stage> iterator = allCached.iterator();
@@ -62,18 +76,17 @@ public class StringQueueConsumer implements QueueConsumer<String> {
 
         if (iterator.hasNext()) {
             Stage nextStage = iterator.next();
-            sortableRepository.update(sortableId, nextStage);
-//            log.info("sortable {} next status: {}", sortableId, nextStage.status());
-            EnqueueParams<String> params = EnqueueParams
-                    .create(String.valueOf(sortableId))
+            sortableList.forEach(s -> sortableRepository.update(s.id(), nextStage));
+            EnqueueParams<String> nextStatusUpdate = EnqueueParams
+                    .create(str)
                     .withExecutionDelay(Duration.ofSeconds(2));
 
             transactionTemplate.execute(t -> {
-                stringQueueProducer.enqueue(params);
+                stringQueueProducer.enqueue(nextStatusUpdate);
                 return null;
             });
         } else {
-            log.info("sortable {} final status: {}", sortableId, sortable.status());
+            log.info("sortable {} final status: {}", first.id(), first.status());
         }
         return TaskExecutionResult.finish();
     }
