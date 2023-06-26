@@ -47,7 +47,7 @@ public class QueueConfiguration {
 
         ProcessingSettings processingSettings = ProcessingSettings.builder()
                 .withProcessingMode(ProcessingMode.SEPARATE_TRANSACTIONS)
-                .withThreadCount(1)
+                .withThreadCount(4)
                 .build();
 
         ExtSettings extSettings = ExtSettings.builder()
