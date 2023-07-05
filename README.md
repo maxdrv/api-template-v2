@@ -13,5 +13,12 @@ Docker has to be installed
 
 
 ## Server start
-1. Положить application.properties с конфигом сервера в папку, откуда будет выполнен запуск
+1. Положить application.properties с конфигом бд доступной на сервере в папку, откуда будет выполнен запуск
 2. Запускаем `java -jar ./template.jar`
+
+
+## Copy files to server
+scp -i ~/.ssh/public_key application.properties template.jar username@{host}:/home/username/
+
+## Start in a background
+java -jar template.jar > out.log 2>&1 &
