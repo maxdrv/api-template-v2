@@ -31,13 +31,29 @@ public class MetricService {
             MetricIdentity identity = metric.identity();
             Tag table = Tag.of("table", identity.key());
             Tag tuple = Tag.of("tuple", identity.subKey());
-            metrics.put(identity, meterRegistry.gauge(identity.name(), List.of(table, tuple), new AtomicLong(0)));
+            Tag host = Tag.of("host", identity.host());
+            metrics.put(identity, meterRegistry.gauge(identity.name(), List.of(table, tuple, host), new AtomicLong(0)));
         }
         for (Metric metric : metricRepository.tableSpace()) {
             MetricIdentity identity = metric.identity();
             Tag table = Tag.of("table", identity.key());
             Tag space = Tag.of("space", identity.subKey());
-            metrics.put(identity, meterRegistry.gauge(identity.name(), List.of(table, space), new AtomicLong(0)));
+            Tag host = Tag.of("host", identity.host());
+            metrics.put(identity, meterRegistry.gauge(identity.name(), List.of(table, space, host), new AtomicLong(0)));
+        }
+        for (Metric metric : metricRepository.slru()) {
+            MetricIdentity identity = metric.identity();
+            Tag slru = Tag.of("slru", identity.key());
+            Tag type = Tag.of("blks", identity.subKey());
+            Tag host = Tag.of("host", identity.host());
+            metrics.put(identity, meterRegistry.gauge(identity.name(), List.of(slru, type, host), new AtomicLong(0)));
+        }
+        for (Metric metric : metricRepository.waitEvents()) {
+            MetricIdentity identity = metric.identity();
+            Tag waitType = Tag.of("waitType", identity.key());
+            Tag waitName = Tag.of("waitName", identity.subKey());
+            Tag host = Tag.of("host", identity.host());
+            metrics.put(identity, meterRegistry.gauge(identity.name(), List.of(waitType, waitName, host), new AtomicLong(0)));
         }
 
     }
@@ -48,6 +64,12 @@ public class MetricService {
             metrics.get(metric.identity()).set(metric.value());
         }
         for (Metric metric : metricRepository.tableSpace()) {
+            metrics.get(metric.identity()).set(metric.value());
+        }
+        for (Metric metric : metricRepository.slru()) {
+            metrics.get(metric.identity()).set(metric.value());
+        }
+        for (Metric metric : metricRepository.waitEvents()) {
             metrics.get(metric.identity()).set(metric.value());
         }
     }

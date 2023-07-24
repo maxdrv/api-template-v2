@@ -1,9 +1,11 @@
 package com.home.project.template.metric;
 
+import com.home.project.template.db.JdbcTemplatePerHost;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -11,6 +13,7 @@ import java.util.List;
 public class MetricRepository {
 
     private final JdbcTemplate jdbcTemplate;
+    private final JdbcTemplatePerHost jdbcTemplatePerHost;
 
     public List<Metric> tableTuples() {
         return jdbcTemplate.query("""
@@ -26,7 +29,7 @@ public class MetricRepository {
                     join pg_class pc on psut.relid = pc.oid
                 where psut.relname in ('sortable');
                 """, (rs, rowNum) -> {
-            MetricIdentity metricIdentity = new MetricIdentity("tableTuples", rs.getString("key"), rs.getString("subkey"));
+            MetricIdentity metricIdentity = new MetricIdentity("tableTuples", rs.getString("key"), rs.getString("subkey"), "");
             return new Metric(metricIdentity, rs.getLong("value"));
         });
     }
@@ -56,9 +59,57 @@ public class MetricRepository {
                        ]) as value
                 from monitored_tables;
                 """, (rs, rowNum) -> {
-            MetricIdentity metricIdentity = new MetricIdentity("tableSpace", rs.getString("key"), rs.getString("subkey"));
+            MetricIdentity metricIdentity = new MetricIdentity("tableSpace", rs.getString("key"), rs.getString("subkey"), "");
             return new Metric(metricIdentity, rs.getLong("value"));
         });
+    }
+
+    public List<Metric> slru() {
+        List<Metric> metrics = new ArrayList<>();
+        for (var entry : jdbcTemplatePerHost.jdbcTemplates().entrySet()) {
+            String host = entry.getKey();
+            JdbcTemplate jdbcTemplate = entry.getValue();
+
+            List<Metric> newMetrics = jdbcTemplate.query("""
+                            select name                                                    as key,
+                                   unnest(array ['blks_hit', 'blks_read', 'blks_written']) as subkey,
+                                   unnest(array [blks_hit, blks_read, blks_written])       as value
+                            from pg_stat_slru
+                            where name in ('Subtrans', 'Xact')
+                            """,
+                    (rs, rowNum) -> {
+                        MetricIdentity metricIdentity = new MetricIdentity("slru", rs.getString("key"), rs.getString("subkey"), host);
+                        return new Metric(metricIdentity, rs.getLong("value"));
+                    }
+            );
+            metrics.addAll(newMetrics);
+        }
+        return metrics;
+    }
+
+    public List<Metric> waitEvents() {
+        List<Metric> metrics = new ArrayList<>();
+        for (var entry : jdbcTemplatePerHost.jdbcTemplates().entrySet()) {
+            String host = entry.getKey();
+            JdbcTemplate jdbcTemplate = entry.getValue();
+
+            List<Metric> newMetrics = jdbcTemplate.query("""
+                            select wait_event_type as key,
+                                   wait_event      as subkey,
+                                   count(*)        as value
+                            from pg_stat_activity
+                            where wait_event_type is not null
+                              and wait_event_type is not null
+                            group by wait_event_type, wait_event;
+                            """,
+                    (rs, rowNum) -> {
+                        MetricIdentity metricIdentity = new MetricIdentity("waits", rs.getString("key"), rs.getString("subkey"), host);
+                        return new Metric(metricIdentity, rs.getLong("value"));
+                    }
+            );
+            metrics.addAll(newMetrics);
+        }
+        return metrics;
     }
 
 }
