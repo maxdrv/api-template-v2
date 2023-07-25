@@ -6,4 +6,7 @@ import java.util.Map;
 
 public record JdbcTemplatePerHost(Map<String, JdbcTemplate> jdbcTemplates) {
 
+    public JdbcTemplate get(String host) {
+        return jdbcTemplates.get(host);
+    }
 }

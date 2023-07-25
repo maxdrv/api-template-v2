@@ -2,6 +2,7 @@ package com.home.project.template.generator;
 
 import com.home.project.template.configuration.Configuration;
 import com.home.project.template.configuration.ConfigurationRepository;
+import com.home.project.template.db.JdbcTemplatePerHost;
 import com.home.project.template.sortable.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class LoadGenerator {
 
+    private final JdbcTemplatePerHost jdbcTemplatePerHost;
     private final JdbcTemplate jdbcTemplate;
     private final StageRepository stageRepository;
     private final SortingCenterRepository sortingCenterRepository;
@@ -135,11 +137,6 @@ public class LoadGenerator {
             return;
         }
 
-//        int cnt = configurationRepository.findByKey("delete_cnt")
-//                .map(Configuration::value)
-//                .map(Integer::parseInt)
-//                .orElse(600);
-
         Optional<Long> archiveIdO = findArchive();
         if (archiveIdO.isEmpty()) {
             log.info("archive not found");
@@ -148,6 +145,79 @@ public class LoadGenerator {
 
         int deletedCnt = sortableRepository.delete(archiveIdO.get());
         jdbcTemplate.update("update archive set deleted = ? where id = ?", deletedCnt, archiveIdO.get());
+    }
+
+    record Cnt(Long cnt, String status) {
+    }
+
+    @Scheduled(fixedDelay = 500)
+    public void aggReplica() {
+        boolean run = configurationRepository.findByKey("agg_replica")
+                .map(conf -> Objects.equals("true", conf.value()))
+                .orElse(false);
+
+        if (!run) {
+            return;
+        }
+
+        JdbcTemplate replica = jdbcTemplatePerHost.get("replica");
+        List<Cnt> cnt = replica.query(
+                "select count(*) cnt, status  from sortable group by status",
+                (rs, rowNum) -> new Cnt(rs.getLong("cnt"), rs.getString("status"))
+        );
+    }
+
+    @Scheduled(fixedDelay = 500)
+    public void selectReplica() {
+        boolean run = configurationRepository.findByKey("select_replica")
+                .map(conf -> Objects.equals("true", conf.value()))
+                .orElse(false);
+
+        if (!run) {
+            return;
+        }
+
+        JdbcTemplate replica = jdbcTemplatePerHost.get("replica");
+
+        List<Sortable> sortableList = replica.query(
+                "select * from sortable where status = 'IN_PROGRESS' limit 2000",
+                SortableMapper::toSortable
+        );
+    }
+
+    @Scheduled(fixedDelay = 500)
+    public void aggMaster() {
+        boolean run = configurationRepository.findByKey("agg_master")
+                .map(conf -> Objects.equals("true", conf.value()))
+                .orElse(false);
+
+        if (!run) {
+            return;
+        }
+
+        JdbcTemplate replica = jdbcTemplatePerHost.get("master");
+        List<Cnt> cnt = replica.query(
+                "select count(*) cnt, status  from sortable group by status",
+                (rs, rowNum) -> new Cnt(rs.getLong("cnt"), rs.getString("status"))
+        );
+    }
+
+    @Scheduled(fixedDelay = 500)
+    public void selectMaster() {
+        boolean run = configurationRepository.findByKey("select_master")
+                .map(conf -> Objects.equals("true", conf.value()))
+                .orElse(false);
+
+        if (!run) {
+            return;
+        }
+
+        JdbcTemplate replica = jdbcTemplatePerHost.get("master");
+
+        List<Sortable> sortableList = replica.query(
+                "select * from sortable where status = 'IN_PROGRESS' limit 2000",
+                SortableMapper::toSortable
+        );
     }
 
     public Optional<Long> findArchive() {

@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -87,23 +88,38 @@ public class MetricRepository {
         return metrics;
     }
 
+    private final static String FILTER;
+
+    static {
+        String events = Const.WAIT_EVENTS.get("LWLock").stream()
+                .map(x -> "'" + x + "'")
+                .collect(Collectors.joining(","));
+
+        FILTER = "wait_event_type = 'LWLock' and wait_event in (" + events + ")";
+    }
+
     public List<Metric> waitEvents() {
         List<Metric> metrics = new ArrayList<>();
         for (var entry : jdbcTemplatePerHost.jdbcTemplates().entrySet()) {
             String host = entry.getKey();
             JdbcTemplate jdbcTemplate = entry.getValue();
 
-            List<Metric> newMetrics = jdbcTemplate.query("""
+            String sql = String.format(
+                    """
                             select wait_event_type as key,
                                    wait_event      as subkey,
                                    count(*)        as value
                             from pg_stat_activity
-                            where wait_event_type is not null
-                              and wait_event_type is not null
+                            where %s
                             group by wait_event_type, wait_event;
                             """,
+                    FILTER
+            );
+
+            List<Metric> newMetrics = jdbcTemplate.query(
+                    sql,
                     (rs, rowNum) -> {
-                        MetricIdentity metricIdentity = new MetricIdentity("waits", rs.getString("key"), rs.getString("subkey"), host);
+                        MetricIdentity metricIdentity = new MetricIdentity("wait", rs.getString("key"), rs.getString("subkey"), host);
                         return new Metric(metricIdentity, rs.getLong("value"));
                     }
             );

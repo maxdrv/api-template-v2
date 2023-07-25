@@ -1,16 +1,13 @@
 package com.home.project.template.db;
 
-import com.home.project.template.util.UrlUtil;
 import com.zaxxer.hikari.util.DriverDataSource;
 import one.util.streamex.EntryStream;
-import one.util.streamex.StreamEx;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import javax.sql.DataSource;
 import java.util.Map;
 import java.util.Properties;
 
@@ -30,6 +27,12 @@ public class Config {
     @Value("${spring.datasource.url}")
     private String url;
 
+    @Value("${pg.url.master}")
+    private String masterUrl;
+
+    @Value("${pg.url.replica}")
+    private String replicaUrl;
+
     @Bean
     public DataSourcePerHost dataSourcePerHost() {
         var readOnlyProps = new Properties();
@@ -37,15 +40,12 @@ public class Config {
         readOnlyProps.put("prepareThreshold", "0");
         readOnlyProps.put("connectTimeout", "1");
 
-        Map<String, DataSource> dataSourcePerHost = StreamEx.of(UrlUtil.splitPgUrlByHosts(url))
-                .mapToEntry(UrlUtil::getHostFromPgUrl, val -> val)
-                .mapValues(pgUrl ->
-                        new DriverDataSource(pgUrl, driverName, readOnlyProps, username, password)
+        return new DataSourcePerHost(
+                Map.of(
+                        "master", new DriverDataSource(masterUrl, driverName, readOnlyProps, username, password),
+                        "replica", new DriverDataSource(replicaUrl, driverName, readOnlyProps, username, password)
                 )
-                .mapValues(ds -> (DataSource) ds)
-                .toMap();
-
-        return new DataSourcePerHost(dataSourcePerHost);
+        );
     }
 
     @Bean

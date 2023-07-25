@@ -2,7 +2,6 @@ package com.home.project.template.metric;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
-import jakarta.annotation.PostConstruct;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -23,10 +22,6 @@ public class MetricService {
         this.metricRepository = metricRepository;
         this.metrics = new ConcurrentHashMap<>();
 
-    }
-
-    @PostConstruct
-    void init() {
         for (Metric metric : metricRepository.tableTuples()) {
             MetricIdentity identity = metric.identity();
             Tag table = Tag.of("table", identity.key());
@@ -38,24 +33,28 @@ public class MetricService {
             MetricIdentity identity = metric.identity();
             Tag table = Tag.of("table", identity.key());
             Tag space = Tag.of("space", identity.subKey());
-            Tag host = Tag.of("host", identity.host());
+            Tag host = Tag.of("host_custom", identity.host());
             metrics.put(identity, meterRegistry.gauge(identity.name(), List.of(table, space, host), new AtomicLong(0)));
         }
         for (Metric metric : metricRepository.slru()) {
             MetricIdentity identity = metric.identity();
             Tag slru = Tag.of("slru", identity.key());
             Tag type = Tag.of("blks", identity.subKey());
-            Tag host = Tag.of("host", identity.host());
+            Tag host = Tag.of("host_custom", identity.host());
             metrics.put(identity, meterRegistry.gauge(identity.name(), List.of(slru, type, host), new AtomicLong(0)));
         }
-        for (Metric metric : metricRepository.waitEvents()) {
-            MetricIdentity identity = metric.identity();
-            Tag waitType = Tag.of("waitType", identity.key());
-            Tag waitName = Tag.of("waitName", identity.subKey());
-            Tag host = Tag.of("host", identity.host());
-            metrics.put(identity, meterRegistry.gauge(identity.name(), List.of(waitType, waitName, host), new AtomicLong(0)));
-        }
 
+        for (String host : List.of("master", "replica")) {
+            Const.WAIT_EVENTS.forEach((type, names) -> {
+                for (String name : names) {
+                    var identity = new MetricIdentity("wait", type, name, host);
+                    Tag waitType = Tag.of("wait_type", identity.key());
+                    Tag waitName = Tag.of("wait_name", identity.subKey());
+                    Tag host1 = Tag.of("host_custom", identity.host());
+                    metrics.put(identity, meterRegistry.gauge(identity.name(), List.of(waitType, waitName, host1), new AtomicLong(0)));
+                }
+            });
+        }
     }
 
     @Scheduled(fixedRate = 3000)

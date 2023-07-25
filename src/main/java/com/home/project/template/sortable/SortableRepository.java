@@ -7,7 +7,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.List;
@@ -20,7 +19,7 @@ public class SortableRepository {
     private final JdbcTemplate jdbcTemplate;
 
     public Sortable findByIdOrThrow(Long id) {
-        return jdbcTemplate.queryForObject("select * from sortable where id = ?", this::toSortable, id);
+        return jdbcTemplate.queryForObject("select * from sortable where id = ?", SortableMapper::toSortable, id);
     }
 
     public List<Sortable> findAllByIds(List<Long> ids) {
@@ -33,7 +32,7 @@ public class SortableRepository {
 
         String sql = "select * from sortable where id in (" + inClauseContent + ")";
 
-        return jdbcTemplate.query(sql, this::toSortable);
+        return jdbcTemplate.query(sql, SortableMapper::toSortable);
     }
 
     public List<Sortable> insert(Long sortingCenterId, String type, Stage stage, String barcode) {
@@ -42,7 +41,7 @@ public class SortableRepository {
                             insert into sortable(created_at, updated_at, sc_id, status, type, stage_id, barcode)
                             values (now(), now(), ?, ?, ?, ?, ?)
                             returning *
-                        """, this::toSortable, sortingCenterId, stage.status(), type, stage.id(), barcode);
+                        """, SortableMapper::toSortable, sortingCenterId, stage.status(), type, stage.id(), barcode);
     }
 
     public List<Long> insertMulti(SortableInsertMulti inserts) {
@@ -98,20 +97,6 @@ public class SortableRepository {
 
     public int delete(Long archiveId) {
         return jdbcTemplate.update("delete from sortable where archive_id = ?", archiveId);
-    }
-
-    private Sortable toSortable(ResultSet rs, int rowNum) throws SQLException {
-        return new Sortable(
-                rs.getLong("id"),
-                rs.getTimestamp("created_at").toInstant(),
-                rs.getTimestamp("updated_at").toInstant(),
-                rs.getLong("sc_id"),
-                rs.getString("status"),
-                rs.getString("type"),
-                rs.getLong("stage_id"),
-                rs.getString("barcode"),
-                rs.getLong("archive_id")
-        );
     }
 
 }
