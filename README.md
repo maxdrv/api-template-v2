@@ -20,7 +20,12 @@ Docker has to be installed
 ## Copy files to server
 scp -i ~/.ssh/public_key application.properties template.jar username@{host}:/home/username/
 scp -i ~/.ssh/cloud1 HelloVirtualMachine.class maxdrv@158.160.34.208:/home/maxdrv/HelloVirtualMachine1.class
-scp -i ~/.ssh/cloud1 template.jar maxdrv@158.160.34.208:/home/maxdrv/uploaded/template.jar
+scp -i ~/.ssh/cloud1 target/template.jar maxdrv@158.160.114.165:/home/maxdrv/template-slru-2.jar
 
 ## Start in a background
 java -jar template.jar > out.log 2>&1 &
+
+### Find and kill java background process
+ps aux | grep java
+kill -15 5101
+kill -9 5101

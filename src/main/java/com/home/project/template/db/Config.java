@@ -30,8 +30,11 @@ public class Config {
     @Value("${pg.url.master}")
     private String masterUrl;
 
-    @Value("${pg.url.replica}")
-    private String replicaUrl;
+    @Value("${pg.url.replica.sync}")
+    private String replicaSyncUrl;
+
+    @Value("${pg.url.replica.async}")
+    private String replicaAsyncUrl;
 
     @Bean
     public DataSourcePerHost dataSourcePerHost() {
@@ -43,7 +46,8 @@ public class Config {
         return new DataSourcePerHost(
                 Map.of(
                         "master", new DriverDataSource(masterUrl, driverName, readOnlyProps, username, password),
-                        "replica", new DriverDataSource(replicaUrl, driverName, readOnlyProps, username, password)
+                        "replica_sync", new DriverDataSource(replicaSyncUrl, driverName, readOnlyProps, username, password),
+                        "replica_async", new DriverDataSource(replicaAsyncUrl, driverName, readOnlyProps, username, password)
                 )
         );
     }
