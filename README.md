@@ -29,3 +29,6 @@ java -jar template.jar > out.log 2>&1 &
 ps aux | grep java
 kill -15 5101
 kill -9 5101
+
+### curl metrics
+curl -X GET --location "http://localhost:8081/actuator/prometheus"

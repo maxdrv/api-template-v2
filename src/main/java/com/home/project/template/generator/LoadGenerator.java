@@ -27,6 +27,8 @@ import java.util.stream.Collectors;
 public class LoadGenerator {
 
     private final JdbcTemplatePerHost jdbcTemplatePerHost;
+    private final AsyncReplicaReader asyncReplicaReader;
+    private final MasterWriter masterWriter;
     private final JdbcTemplate jdbcTemplate;
     private final StageRepository stageRepository;
     private final SortingCenterRepository sortingCenterRepository;
@@ -211,6 +213,16 @@ public class LoadGenerator {
     @Scheduled(fixedDelay = 500)
     public void selectReplicaAsync() {
         select("replica_async");
+    }
+
+    @Scheduled(fixedDelay = 200)
+    public void selectReplicaLong() {
+        asyncReplicaReader.doJob();
+    }
+
+    @Scheduled(fixedDelay = 1000 * 60)
+    public void runNotTooLongTransactions() {
+        masterWriter.runLongerThanInstantTransaction();
     }
 
     public Optional<Long> findArchive() {

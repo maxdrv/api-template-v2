@@ -66,7 +66,7 @@ public class MetricService {
         }
     }
 
-    @Scheduled(fixedRate = 1000)
+    @Scheduled(fixedRate = 3000)
     public void extractMetrics() {
         for (Metric metric : metricRepository.tableTuples()) {
             metrics.get(metric.identity()).set(metric.value());

@@ -2,6 +2,7 @@ package com.home.project.template.config;
 
 import com.home.project.template.db.DataSourcePerHost;
 import com.home.project.template.db.JdbcTemplatePerHost;
+import com.home.project.template.metric.Const;
 import io.zonky.test.db.postgres.embedded.*;
 import one.util.streamex.EntryStream;
 import org.springframework.context.annotation.Bean;
@@ -34,7 +35,13 @@ public class TestConfiguration {
 
     @Bean
     public DataSourcePerHost dataSourcePerHost(DataSource dataSource) {
-        return new DataSourcePerHost(Map.of("localhost", dataSource));
+        return new DataSourcePerHost(
+                Map.of(
+                        Const.MASTER, dataSource,
+                        Const.REPLICA_SYNC, dataSource,
+                        Const.REPLICA_ASYNC, dataSource
+                )
+        );
     }
 
     @Bean
